@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef } from 'vue';
 import ActivityHeatmap from './components/ActivityHeatmap.vue';
-import { createActivityLevels, type HeatmapData, type ActivityLevel, type CellSelection, type CellSelectionWithData, type HeatmapCell } from './canvas';
+import { createActivityLevels, type HeatmapData, type ActivityLevel, type CellSelection, type HeatmapCell } from './canvas';
 
 /**
  * 格式化日期为 YYYY-MM-DD
@@ -89,7 +89,7 @@ const activityLevels = ref<ActivityLevel[]>(createActivityLevels(data.value.maxC
 const selectedCells = ref<CellSelection[]>([]);
 const showFilter = ref(true);
 
-function handleCellSelect(event: { cell: CellSelectionWithData; ctrlKey: boolean; selectedCells: CellSelectionWithData[] }) {
+function handleCellSelect(event: { cell: CellSelection; ctrlKey: boolean; selectedCells: CellSelection[] }) {
   console.log('Cell selected:', event);
   selectedCells.value = event.selectedCells;
 }

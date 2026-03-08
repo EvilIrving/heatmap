@@ -2,47 +2,16 @@
  * 热力图事件处理器 - 处理交互逻辑
  */
 
-import type { EventHandler, ClickEvent } from './CanvasEngine';
-import { LAYOUT } from './HeatmapRenderer';
-import type { CellSelection, HeatmapCell, HeatmapData } from './HeatmapRenderer';
-
-// ========== Types ==========
-
-export interface HeatmapEventHandlers {
-  onCellSelect?: (event: CellSelectEvent) => void;
-  onSettingsOpen?: () => void;
-}
-
-/** 带原始数据的单元格选择信息 */
-export interface CellSelectionWithData extends CellSelection {
-  /** 原始单元格数据 */
-  data?: HeatmapCell;
-}
-
-export interface CellSelectEvent {
-  /** 当前点击的单元格（带原始数据） */
-  cell: CellSelectionWithData;
-  ctrlKey: boolean;
-  /** 所有选中的单元格（带原始数据） */
-  selectedCells: CellSelectionWithData[];
-}
-
-export interface HeatmapEventHandlerOptions {
-  handlers: HeatmapEventHandlers;
-  getCtrlKey: () => boolean;
-  getSelectedCells: () => CellSelection[];
-  getData: () => HeatmapData;  // 获取原始数据
-  cellCount?: number;  // 列数 (小时数)
-  rowCount?: number;   // 行数 (天数)
-}
+import type { EventHandler, ClickEvent, CellSelection, HeatmapData, HeatmapEventHandlerOptions, HeatmapEventHandlers } from './types';
+import { LAYOUT } from './const';
 
 // ========== HeatmapEventHandler ==========
 
 export class HeatmapEventHandler implements EventHandler {
-  private options: Required<HeatmapEventHandlerOptions>;
+  private options: Required<HeatmapEventHandlerOptions> & { getData: () => HeatmapData };
   private renderer: any = null;
 
-  constructor(options: HeatmapEventHandlerOptions) {
+  constructor(options: HeatmapEventHandlerOptions & { getData: () => HeatmapData }) {
     this.options = {
       handlers: options.handlers,
       getCtrlKey: options.getCtrlKey,
@@ -185,16 +154,19 @@ export class HeatmapEventHandler implements EventHandler {
           // 选中整行
           newSelection = [];
           for (let hour = 0; hour < this.options.cellCount; hour++) {
-            newSelection.push({ day: cell.day, hour, type: 'cell' });
+            const cellData = this.options.getData().cells[cell.day]?.[hour];
+            newSelection.push({ day: cell.day, hour, type: 'cell', data: cellData });
           }
         } else if (cell.type === 'col') {
           // 选中整列
           newSelection = [];
           for (let day = 0; day < this.options.rowCount; day++) {
-            newSelection.push({ day, hour: cell.hour, type: 'cell' });
+            const cellData = this.options.getData().cells[day]?.[cell.hour];
+            newSelection.push({ day, hour: cell.hour, type: 'cell', data: cellData });
           }
         } else {
-          newSelection = [cell];
+          const cellData = this.options.getData().cells[cell.day]?.[cell.hour];
+          newSelection = [{ ...cell, data: cellData }];
         }
       }
     }
@@ -204,10 +176,14 @@ export class HeatmapEventHandler implements EventHandler {
 
   private setToArray(set: Set<string>): CellSelection[] {
     const result: CellSelection[] = [];
+    const data = this.options.getData();
     set.forEach((key) => {
       if (key.startsWith('cell-')) {
         const [, day, hour] = key.split('-');
-        result.push({ day: parseInt(day), hour: parseInt(hour), type: 'cell' });
+        const dayNum = parseInt(day);
+        const hourNum = parseInt(hour);
+        const cellData = data.cells[dayNum]?.[hourNum];
+        result.push({ day: dayNum, hour: hourNum, type: 'cell', data: cellData });
       } else if (key.startsWith('row-')) {
         result.push({ day: parseInt(key.split('-')[1]), hour: -1, type: 'row' });
       } else if (key.startsWith('col-')) {
@@ -217,30 +193,20 @@ export class HeatmapEventHandler implements EventHandler {
     return result;
   }
 
-  /** 根据 CellSelection 获取原始数据 */
-  private getCellData(cell: CellSelection): HeatmapCell | undefined {
-    if (cell.type !== 'cell') return undefined;
-    const data = this.options.getData();
-    return data.cells[cell.day]?.[cell.hour];
-  }
-
-  /** 将 CellSelection 转换为带数据的版本 */
-  private attachCellData(cell: CellSelection): CellSelectionWithData {
-    return {
-      ...cell,
-      data: this.getCellData(cell)
-    };
-  }
-
   private emitSelect(
     cell: CellSelection,
     ctrlKey: boolean,
     selectedCells: CellSelection[]
   ): void {
+    // 为当前点击的单元格附加数据（如果是普通单元格）
+    const cellWithData: CellSelection = cell.type === 'cell' 
+      ? { ...cell, data: this.options.getData().cells[cell.day]?.[cell.hour] }
+      : cell;
+
     this.options.handlers.onCellSelect?.({
-      cell: this.attachCellData(cell),
+      cell: cellWithData,
       ctrlKey,
-      selectedCells: selectedCells.map(c => this.attachCellData(c))
+      selectedCells
     });
   }
 }

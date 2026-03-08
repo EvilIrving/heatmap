@@ -2,159 +2,38 @@
  * 热力图渲染器 - 基于 CanvasEngine 的具体渲染实现
  */
 
-import type { Renderer, RenderContext } from './CanvasEngine';
-import { roundRect, drawText } from './CanvasEngine';
-import {
-  LAYOUT,
-  DEFAULT_LEVEL_COLORS,
-  DEFAULT_LEVEL_NAMES,
-  DEFAULT_LEVEL_PERCENTAGES,
-  DAY_LABELS,
-  COLORS,
-  FONTS
-} from './const';
-
-// 重新导出常量，保持向后兼容
-export { LAYOUT, DEFAULT_LEVEL_COLORS, DEFAULT_LEVEL_NAMES };
-
-// ========== Types ==========
-
-export interface HeatmapCell {
-  date: string;  // 日期字符串，如 "2024-03-08"
-  hour: number;  // 0-23
-  count: number;
-}
-
-export interface HeatmapData {
-  cells: HeatmapCell[][];
-  rowTotals: number[];
-  colTotals: number[];
-  grandTotal: number;
-  maxCount: number;
-}
-
-export interface ActivityLevel {
-  name: string;
-  color: string;
-  min: number;
-  max: number;
-}
-
-export interface CellSelection {
-  day: number;
-  hour: number;
-  type: 'cell' | 'row' | 'col';
-}
-
-export interface HeatmapRendererOptions {
-  data: HeatmapData;
-  activityLevels: ActivityLevel[];
-  selectedCells: CellSelection[];
-  showFilter?: boolean;
-}
-
-// ========== Utility Functions ==========
-
-/**
- * 从日期字符串获取星期几（0=周一，6=周日）
- */
-export function getDayFromDate(dateStr: string): number {
-  const date = new Date(dateStr);
-  const day = date.getDay();
-  // JavaScript: 0=周日, 1=周一, ..., 6=周六
-  // 转换为: 0=周一, 1=周二, ..., 6=周日
-  return day === 0 ? 6 : day - 1;
-}
-
-/**
- * 创建活动等级配置
- * @param maxCount 最大计数值
- * @param levelCount 等级数量（3-5）
- * @param options 自定义选项
- */
-export function createActivityLevels(
-  maxCount: number,
-  levelCount: 3 | 4 | 5 = 4,
-  options?: {
-    colors?: string[];
-    names?: string[];
-    percentages?: number[];
-  }
-): ActivityLevel[] {
-  const colors = options?.colors ?? DEFAULT_LEVEL_COLORS[levelCount];
-  const names = options?.names ?? DEFAULT_LEVEL_NAMES[levelCount];
-  const percentages = options?.percentages ?? DEFAULT_LEVEL_PERCENTAGES[levelCount];
-
-  const levels: ActivityLevel[] = [];
-  let prevMax = 0;
-
-  for (let i = 0; i < levelCount; i++) {
-    const max = i === levelCount - 1 ? maxCount : Math.round(maxCount * percentages[i]);
-    levels.push({
-      name: names[i],
-      color: colors[i],
-      min: prevMax + (i === 0 ? 0 : 1),
-      max
-    });
-    prevMax = max;
-  }
-
-  return levels;
-}
+import type { Renderer, RenderContext,ActivityLevel, CellSelection, HeatmapRendererOptions } from './types';
+import { roundRect, drawText, formatNumber } from './utils';
+import { LAYOUT } from './const';
 
 // ========== Helper Functions ==========
 
-function formatNumber(num: number): string {
-  if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'b'
-  }
-  if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'm'
-  }
-  if (num >= 1_000) {
-    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'k'
-  }
-  return num.toString()
-}
-
 function getCellColor(count: number, levels: ActivityLevel[]): string {
   if (count === 0) return '#f5f5f5';
-  // 按 max 值升序排列，确保从低到高匹配
-  const sortedLevels = [...levels].sort((a, b) => a.max - b.max);
-  for (const level of sortedLevels) {
+  // Find the highest activity level that this count falls into
+  for (const level of levels) {
     if (count <= level.max) {
       return level.color;
     }
   }
   // If count exceeds all levels, use the highest level color
-  return sortedLevels[sortedLevels.length - 1]?.color || '#f5f5f5';
-}
-
-/**
- * 根据颜色亮度计算合适的文字颜色
- * 使用相对亮度公式: L = 0.299*R + 0.587*G + 0.114*B
- */
-function getContrastTextColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '')
-  const r = parseInt(hex.substring(0, 2), 16)
-  const g = parseInt(hex.substring(2, 4), 16)
-  const b = parseInt(hex.substring(4, 6), 16)
-  const luminance = 0.299 * r + 0.587 * g + 0.114 * b
-  return luminance > 186 ? '#333' : '#fff'
+  return levels[levels.length - 1]?.color || '#f5f5f5';
 }
 
 function getCellTextColor(count: number, levels: ActivityLevel[]): string {
   if (count === 0) return '#999';
-  // 按 max 值升序排列，确保从低到高匹配
-  const sortedLevels = [...levels].sort((a, b) => a.max - b.max);
-  for (const level of sortedLevels) {
+  // Find the highest activity level that this count falls into
+  for (const level of levels) {
     if (count <= level.max) {
-      return getContrastTextColor(level.color)
+      // Use dark text for light background colors (green, yellow, light orange)
+      if (level.color === '#fff566' || level.color === '#b7eb8f' || level.color === '#ffbb96') return '#333';
+      return '#fff';
     }
   }
-  // If count exceeds all levels, use the highest level's contrast color
-  const highestLevel = sortedLevels[sortedLevels.length - 1];
-  return highestLevel ? getContrastTextColor(highestLevel.color) : '#fff';
+  // If count exceeds all levels, use white text for the highest level
+  const highestLevel = levels[levels.length - 1];
+  if (highestLevel && (highestLevel.color === '#fff566' || highestLevel.color === '#b7eb8f' || highestLevel.color === '#ffbb96')) return '#333';
+  return '#fff';
 }
 
 // ========== HeatmapRenderer ==========
@@ -207,6 +86,7 @@ export class HeatmapRenderer implements Renderer {
   updateOptions(options: Partial<HeatmapRendererOptions>): void {
     this.options = { ...this.options, ...options };
     if (options.selectedCells !== undefined) {
+      console.log('[Renderer] updateOptions selectedCells:', options.selectedCells.length);
       this.selectedSet = this.buildSelectedSet(options.selectedCells);
     }
     if (options.data !== undefined) {
@@ -276,12 +156,13 @@ export class HeatmapRenderer implements Renderer {
     gap: number,
     rowLabelWidth: number
   ): void {
-    for (let day = 0; day < DAY_LABELS.length; day++) {
+    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    for (let day = 0; day < 7; day++) {
       const y = offsetY + colLabelHeight + day * (cellHeight + gap) + cellHeight / 2;
-      drawText(ctx.ctx, DAY_LABELS[day], offsetX + rowLabelWidth - 8, y, {
+      drawText(ctx.ctx, days[day], offsetX + rowLabelWidth - 8, y, {
         align: 'right',
-        color: COLORS.TEXT_DARK,
-        font: FONTS.DEFAULT
+        color: '#333',
+        font: '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto'
       });
     }
   }
@@ -349,7 +230,7 @@ export class HeatmapRenderer implements Renderer {
       ctx.ctx.fill();
 
       // 选中边框
-      if (this.options.selectedCells.some((c) => c.type === 'row' && c.day === day)) {
+      if (this.options.selectedCells.some((c: CellSelection) => c.type === 'row' && c.day === day)) {
         ctx.ctx.strokeStyle = '#1890ff';
         ctx.ctx.lineWidth = 2;
         roundRect(ctx.ctx, totalsX, y, cellWidth, cellHeight, 4);
@@ -429,7 +310,7 @@ export class HeatmapRenderer implements Renderer {
     const itemWidth = 14;
     const gap = 6;
 
-    activityLevels.forEach((level, index) => {
+    activityLevels.forEach((level: ActivityLevel, index: number) => {
       const y = legendY + 26 + index * (itemHeight + gap);
 
       // 颜色块
@@ -477,7 +358,9 @@ export class HeatmapRenderer implements Renderer {
 
   private isCellSelected(day: number, hour: number): boolean {
     const key = `cell-${day}-${hour}`;
-    return this.selectedSet.has(key);
+    const result = this.selectedSet.has(key);
+    console.log('[Renderer] isCellSelected:', key, result, 'set size:', this.selectedSet.size);
+    return result;
   }
 
   destroy(): void {

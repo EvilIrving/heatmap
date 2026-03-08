@@ -8,7 +8,6 @@ import {
   type HeatmapData,
   type ActivityLevel,
   type CellSelection,
-  type CellSelectionWithData
 } from '../canvas';
 
 // ========== Props ==========
@@ -27,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // ========== Emits ==========
 const emit = defineEmits<{
-  cellselect: [event: { cell: CellSelectionWithData; ctrlKey: boolean; selectedCells: CellSelectionWithData[] }];
+  cellselect: [event: { cell: CellSelection; ctrlKey: boolean; selectedCells: CellSelection[] }];
   activitylevelschange: [event: { levels: ActivityLevel[] }];
 }>();
 
@@ -171,9 +170,9 @@ function handleBlur() {
 }
 
 function handleCellSelect(event: {
-  cell: CellSelectionWithData;
+  cell: CellSelection;
   ctrlKey: boolean;
-  selectedCells: CellSelectionWithData[];
+  selectedCells: CellSelection[];
 }): void {
   emit('cellselect', event);
 }

@@ -2,44 +2,34 @@
  * Canvas 模块导出
  */
 
-export { CanvasEngine, roundRect, drawText } from './CanvasEngine';
+// 导出工具函数
+export { roundRect, drawText, formatNumber, getContrastTextColor, getDayFromDate, createActivityLevels } from './utils';
+export type { TextOptions } from './utils';
+
+// 导出类型
 export type {
   CanvasEngineOptions,
   RenderContext,
   Renderer,
   EventHandler,
-  MouseEvent,
-  ClickEvent
-} from './CanvasEngine';
-
-export {
-  HeatmapRenderer,
-  LAYOUT,
-  createActivityLevels,
-  getDayFromDate,
-  DEFAULT_LEVEL_COLORS,
-  DEFAULT_LEVEL_NAMES
-} from './HeatmapRenderer';
-export type {
+  CanvasMouseEvent,
+  ClickEvent,
+  // HeatmapRenderer 类型
   HeatmapCell,
   HeatmapData,
   ActivityLevel,
   CellSelection,
-  HeatmapRendererOptions
-} from './HeatmapRenderer';
-
-// 从 const.ts 导出常量
-export {
-  DEFAULT_LEVEL_PERCENTAGES,
-  DAY_LABELS,
-  COLORS,
-  FONTS
-} from './const';
-
-export { HeatmapEventHandler } from './HeatmapEventHandler';
-export type {
+  HeatmapRendererOptions,
+  // HeatmapEventHandler 类型
   HeatmapEventHandlers,
   CellSelectEvent,
-  CellSelectionWithData,
   HeatmapEventHandlerOptions
-} from './HeatmapEventHandler';
+} from './types';
+
+// 导出常量
+export { LAYOUT, DEFAULT_LEVEL_COLORS, DEFAULT_LEVEL_NAMES, DEFAULT_LEVEL_PERCENTAGES, DAY_LABELS, COLORS, FONTS } from './const';
+
+// 导出类
+export { CanvasEngine } from './CanvasEngine';
+export { HeatmapRenderer } from './HeatmapRenderer';
+export { HeatmapEventHandler } from './HeatmapEventHandler';

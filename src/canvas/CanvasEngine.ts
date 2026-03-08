@@ -7,60 +7,7 @@
  * 3. EventHandler - 事件处理器，将鼠标坐标转换为逻辑坐标并触发事件
  */
 
-// ========== Types ==========
-
-export interface CanvasEngineOptions {
-  dpr?: number;                    // 设备像素比
-  width: number;                   // 逻辑宽度
-  height: number;                  // 逻辑高度
-}
-
-export interface RenderContext {
-  ctx: CanvasRenderingContext2D;
-  width: number;
-  height: number;
-  dpr: number;
-}
-
-export interface MouseEvent {
-  x: number;                       // 逻辑 X 坐标
-  y: number;                       // 逻辑 Y 坐标
-  rawX: number;                    // 原始 X 坐标
-  rawY: number;                    // 原始 Y 坐标
-}
-
-export interface ClickEvent extends MouseEvent {
-  clickCount: number;              // 点击次数 (1=单击，2=双击)
-}
-
-// ========== Renderer Interface ==========
-
-/**
- * 渲染器接口 - 由具体组件实现
- */
-export interface Renderer {
-  /** 渲染入口 */
-  render(ctx: RenderContext): void;
-
-  /** 可选：清理资源 */
-  destroy?(): void;
-}
-
-// ========== Event Handler Interface ==========
-
-/**
- * 事件处理器接口
- */
-export interface EventHandler {
-  /** 处理点击事件 */
-  onClick?(event: ClickEvent): void;
-
-  /** 处理鼠标移动 */
-  onMouseMove?(event: MouseEvent): void;
-
-  /** 处理鼠标离开 */
-  onMouseLeave?(): void;
-}
+import type { Renderer, EventHandler, CanvasEngineOptions, RenderContext, ClickEvent, CanvasMouseEvent } from './types';
 
 // ========== Canvas Engine ==========
 
@@ -107,7 +54,7 @@ export class CanvasEngine {
     this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
   }
 
-  private getLogicalCoords(e: globalThis.MouseEvent): MouseEvent {
+  private getLogicalCoords(e: globalThis.MouseEvent): CanvasMouseEvent {
     const rect = this.canvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
@@ -213,48 +160,4 @@ export class CanvasEngine {
   getSize(): { width: number; height: number } {
     return { width: this.options.width, height: this.options.height };
   }
-}
-
-// ========== Utility Functions ==========
-
-export function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number = 4
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-export function drawText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  options: {
-    align?: CanvasTextAlign;
-    baseline?: CanvasTextBaseline;
-    font?: string;
-    color?: string;
-  } = {}
-): void {
-  ctx.save();
-  ctx.textAlign = options.align ?? 'center';
-  ctx.textBaseline = options.baseline ?? 'middle';
-  ctx.font = options.font ?? '12px sans-serif';
-  ctx.fillStyle = options.color ?? '#333';
-  ctx.fillText(text, x, y);
-  ctx.restore();
 }
