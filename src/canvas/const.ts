@@ -9,7 +9,7 @@ export const LAYOUT = {
   CELL_HEIGHT: 26,
   ROW_LABEL_WIDTH: 40,
   COL_LABEL_HEIGHT: 20,
-  LEGEND_WIDTH: 380,
+  LEGEND_WIDTH: 260,
   PADDING: 20,
   GAP: 2
 } as const;

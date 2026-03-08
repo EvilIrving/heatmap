@@ -357,10 +357,7 @@ export class HeatmapRenderer implements Renderer {
   }
 
   private isCellSelected(day: number, hour: number): boolean {
-    const key = `cell-${day}-${hour}`;
-    const result = this.selectedSet.has(key);
-    console.log('[Renderer] isCellSelected:', key, result, 'set size:', this.selectedSet.size);
-    return result;
+    return this.selectedSet.has(`cell-${day}-${hour}`);
   }
 
   destroy(): void {
