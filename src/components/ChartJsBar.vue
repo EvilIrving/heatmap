@@ -278,10 +278,36 @@ onUnmounted(() => {
     <div class="relative w-full h-80">
       <canvas ref="chartRef"></canvas>
     </div>
+ 
 
-    <!-- 说明文字 -->
-    <div class="mt-4 text-sm text-gray-500">
-      <p>拖动底部手柄调整选区范围，选区内柱状图高亮显示</p>
+    <!-- 待办清单 -->
+    <div class="mt-6 p-4   border border-yellow-200 rounded-lg">
+      <h3 class="text-sm font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+        <span class="w-2 h-2   rounded-full"></span>
+        待办清单
+      </h3>
+      <ul class="space-y-2 text-sm">
+        <li class="flex items-center gap-2 text-yellow-700">
+          <input type="checkbox" disabled class="w-4 h-4 rounded border-yellow-400">
+          <span>Decimation - 大数据量时使用 Chart.js 数据抽稀算法（需改为折线图 或者 从数据层面自行实现）</span>
+        </li>
+        <li class="flex items-center gap-2 text-yellow-700">
+          <input type="checkbox" disabled class="w-4 h-4 rounded border-yellow-400">
+          <span>拖拽选中区域 - 实现选区拖拽移动功能</span>
+        </li>
+        <li class="flex items-center gap-2 text-yellow-700">
+          <input type="checkbox" disabled class="w-4 h-4 rounded border-yellow-400">
+          <span>交互事件 emit 数据 - 将选择范围数据通过 emit 传递给父组件</span>
+        </li>
+        <li class="flex items-center gap-2 text-yellow-700">
+          <input type="checkbox" disabled class="w-4 h-4 rounded border-yellow-400">
+          <span>年度 bar width 窄一些 - 调整柱状图宽度以符合设计图</span>
+        </li>
+        <li class="flex items-center gap-2 text-yellow-700">
+          <input type="checkbox" disabled class="w-4 h-4 rounded border-yellow-400">
+          <span>背景添加轴虚线 - 为坐标轴添加虚线背景网格</span>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
