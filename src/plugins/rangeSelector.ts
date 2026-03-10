@@ -63,18 +63,10 @@ export const rangeSelectorPlugin: Plugin<'bar', RangeSelectorOptions> = {
 
     if (!chartArea) return;
 
-    const meta = chart.getDatasetMeta(0);
-    const count = meta.data.length;
-    if (!count) return;
-
-    const startIndex = Math.min(Math.floor((state.start / 100) * count), count - 1);
-    const endIndex = Math.min(Math.floor((state.end / 100) * count), count - 1);
-
-    // 使用柱子的实际X坐标，而不是刻度位置
-    const startX = meta.data[startIndex]?.x ?? chartArea.left;
-    const endX = meta.data[endIndex]?.x ?? chartArea.right;
-
-    if (startX == null || endX == null) return;
+    // Calculate pixel positions based on percentage (continuous)
+    const rangeWidth = chartArea.right - chartArea.left;
+    const startX = chartArea.left + (state.start / 100) * rangeWidth;
+    const endX = chartArea.left + (state.end / 100) * rangeWidth;
 
     state.leftX = startX;
     state.rightX = endX;
@@ -118,22 +110,26 @@ export const rangeSelectorPlugin: Plugin<'bar', RangeSelectorOptions> = {
     );
   },
 
-  afterDatasetsDraw(chart, _args, opts) {
+  beforeDatasetsDraw(chart, _args, opts) {
     const state = chart.$rangeState;
     if (!state) return;
 
     const meta = chart.getDatasetMeta(0);
-    const count = meta.data.length;
-    if (count === 0) return;
+    if (meta.data.length === 0) return;
 
-    const startIndex = Math.min(Math.floor((state.start / 100) * (count - 1)), count - 1);
-    const endIndex = Math.min(Math.floor((state.end / 100) * (count - 1)), count - 1);
+    // 高亮判断：柱子与选择区域有接触即算选中
+    meta.data.forEach((bar) => {
+      const b = bar as any;
+      // 获取柱子的左右边缘（考虑宽度）
+      const barWidth = b.width || 0;
+      const barLeft = b.x - barWidth / 2;
+      const barRight = b.x + barWidth / 2;
 
-    meta.data.forEach((bar, i) => {
-      bar.options.backgroundColor =
-        i >= startIndex && i <= endIndex
-          ? opts.selectedColor
-          : opts.unselectedColor;
+      // 判断柱子与选择区域是否相交（接触边缘即算选中）
+      const inRange = barRight >= state.leftX && barLeft <= state.rightX;
+      b.options.backgroundColor = inRange
+        ? opts.selectedColor
+        : opts.unselectedColor;
     });
   },
 
@@ -177,27 +173,14 @@ export const rangeSelectorPlugin: Plugin<'bar', RangeSelectorOptions> = {
     }
 
     if (e.type === 'mousemove' && state.dragging) {
-      const meta = chart.getDatasetMeta(0);
-      const count = meta.data.length;
-      
-      if (count === 0) return;
+      const { chartArea } = chart;
+      if (!chartArea) return;
 
-      // 找到鼠标位置对应的最近柱子索引
-      let closestIndex = 0;
-      let minDistance = Infinity;
-      
-      for (let i = 0; i < count; i++) {
-        const bar = meta.data[i];
-        if (!bar) continue;
-        const distance = Math.abs(e.x - bar.x);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = i;
-        }
-      }
+      const rangeWidth = chartArea.right - chartArea.left;
+      if (rangeWidth <= 0) return;
 
-      // 将索引转换为百分比
-      const percent = (closestIndex / (count - 1)) * 100;
+      // 连续平滑移动：将鼠标X坐标直接转换为百分比
+      const percent = ((e.x - chartArea.left) / rangeWidth) * 100;
 
       if (!isFinite(percent)) return;
 
