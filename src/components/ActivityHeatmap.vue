@@ -33,7 +33,7 @@ const emit = defineEmits<{
 // ========== State ==========
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const settingsOpen = ref(false);
-const ctrlKey = ref(false);
+const multiSelectKey = ref(false);
 const localActivityLevels = ref<ActivityLevel[]>(props.activityLevels.length > 0 ? [...props.activityLevels] : []);
 
 // Canvas 引擎实例
@@ -76,7 +76,7 @@ onMounted(() => {
       onCellSelect: handleCellSelect,
       onSettingsOpen: () => { settingsOpen.value = true; }
     },
-    getCtrlKey: () => ctrlKey.value,
+    getMultiSelectKey: () => multiSelectKey.value,
     getSelectedCells: () => props.selectedCells,
     getData: () => props.data,
     cellCount: 24,

@@ -14,7 +14,7 @@ export class HeatmapEventHandler implements EventHandler {
   constructor(options: HeatmapEventHandlerOptions & { getData: () => HeatmapData }) {
     this.options = {
       handlers: options.handlers,
-      getCtrlKey: options.getCtrlKey,
+      getMultiSelectKey: options.getMultiSelectKey,
       getSelectedCells: options.getSelectedCells,
       getData: options.getData,
       cellCount: options.cellCount ?? 24,
@@ -103,14 +103,10 @@ export class HeatmapEventHandler implements EventHandler {
     const cell = this.getCellFromCoords(event.x, event.y);
     if (!cell) return;
 
-    const ctrlKey = this.options.getCtrlKey();
+    const multiSelectKey = this.options.getMultiSelectKey();
 
-    if (event.clickCount === 2) {
-      // 双击：占位（暂时无操作）
-    } else {
-      // 单击：选择
-      this.handleCellSelection(cell, ctrlKey);
-    }
+    // 单击：选择
+    this.handleCellSelection(cell, multiSelectKey);
   }
 
   onMouseMove(): void {

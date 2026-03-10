@@ -7,7 +7,7 @@
  * 3. EventHandler - 事件处理器，将鼠标坐标转换为逻辑坐标并触发事件
  */
 
-import type { Renderer, EventHandler, CanvasEngineOptions, RenderContext, ClickEvent, CanvasMouseEvent } from './types';
+import type { Renderer, EventHandler, CanvasEngineOptions, RenderContext, CanvasMouseEvent } from './types';
 
 // ========== Canvas Engine ==========
 
@@ -17,9 +17,6 @@ export class CanvasEngine {
   private options: Required<CanvasEngineOptions>;
   private renderer: Renderer | null = null;
   private eventHandler: EventHandler | null = null;
-  private clickTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastClickPos: { x: number; y: number } | null = null;
-  private lastClickTime = 0;
 
   constructor(canvas: HTMLCanvasElement, options: CanvasEngineOptions) {
     this.canvas = canvas;
@@ -52,6 +49,11 @@ export class CanvasEngine {
   private bindEvents(): void {
     this.canvas.addEventListener('click', this.handleClick.bind(this));
     this.canvas.addEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.addEventListener('contextmenu', this.handleContextMenu.bind(this));
+  }
+
+  private handleContextMenu(e: globalThis.MouseEvent): void {
+    e.preventDefault();
   }
 
   private getLogicalCoords(e: globalThis.MouseEvent): CanvasMouseEvent {
@@ -68,35 +70,7 @@ export class CanvasEngine {
     if (!this.eventHandler?.onClick) return;
 
     const pos = this.getLogicalCoords(e);
-    const now = Date.now();
-
-    // 判断双击
-    const isDoubleClick = this.lastClickPos &&
-      Math.abs(pos.x - this.lastClickPos.x) < 5 &&
-      Math.abs(pos.y - this.lastClickPos.y) < 5 &&
-      now - this.lastClickTime < 300;
-
-    if (isDoubleClick) {
-      if (this.clickTimer) {
-        clearTimeout(this.clickTimer);
-        this.clickTimer = null;
-      }
-      this.eventHandler.onClick({ ...pos, clickCount: 2 });
-      this.lastClickPos = null;
-      this.lastClickTime = 0;
-    } else {
-      // 延迟触发单击
-      if (this.clickTimer) {
-        clearTimeout(this.clickTimer);
-      }
-      this.lastClickPos = { x: pos.x, y: pos.y };
-      this.lastClickTime = now;
-      this.clickTimer = setTimeout(() => {
-        this.eventHandler?.onClick?.({ ...pos, clickCount: 1 });
-        this.clickTimer = null;
-        this.lastClickPos = null;
-      }, 300);
-    }
+    this.eventHandler.onClick({ ...pos, clickCount: 1 });
   }
 
   private handleMouseMove(e: globalThis.MouseEvent): void {
@@ -142,6 +116,7 @@ export class CanvasEngine {
     this.renderer?.destroy?.();
     this.canvas.removeEventListener('click', this.handleClick.bind(this));
     this.canvas.removeEventListener('mousemove', this.handleMouseMove.bind(this));
+    this.canvas.removeEventListener('contextmenu', this.handleContextMenu.bind(this));
   }
 
   // ========== Helpers ==========

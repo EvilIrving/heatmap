@@ -111,7 +111,7 @@ export interface CellSelectEvent {
 
 export interface HeatmapEventHandlerOptions {
   handlers: HeatmapEventHandlers;
-  getCtrlKey: () => boolean;
+  getMultiSelectKey: () => boolean;
   getSelectedCells: () => CellSelection[];
   cellCount?: number;  // 列数 (小时数)
   rowCount?: number;   // 行数 (天数)
